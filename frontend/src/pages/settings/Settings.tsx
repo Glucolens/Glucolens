@@ -6,15 +6,16 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { settingsService, type UserPreferences } from '@/services/settingsService';
-import { User, Bell, Shield, LogOut, Save, Loader2 } from 'lucide-react'; // Added Loader2
+import { User, Bell, Shield, LogOut, Save } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
+import { LoadingScreen } from '@/components/ui/LoadingScreen'; 
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   
   // Local State
-  const [isLoading, setIsLoading] = useState(true); // Default to true
+  const [isLoading, setIsLoading] = useState(true);
   const [prefs, setPrefs] = useState<UserPreferences>({
     emailNotifications: false,
     pushNotifications: false,
@@ -31,7 +32,8 @@ export default function Settings() {
       } catch (error) {
         console.error("Failed to load settings", error);
       } finally {
-        setIsLoading(false); // Stop loading when done
+        // Fake delay just so you can see the loader for a moment
+        setTimeout(() => setIsLoading(false), 800);
       }
     };
     loadData();
@@ -53,13 +55,11 @@ export default function Settings() {
     navigate('/auth/login');
   };
 
-  // Show loading state
+  //  LoadingScreen component
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-        </div>
+        <LoadingScreen className="h-[50vh]" message="Loading settings..." />
       </AppLayout>
     );
   }
@@ -157,4 +157,5 @@ export default function Settings() {
       </div>
     </AppLayout>
   );
-}
+        }
+                
