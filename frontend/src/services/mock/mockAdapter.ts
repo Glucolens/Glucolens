@@ -79,15 +79,6 @@ mock.onPost('/auth/register').reply((config) => {
   }];
 });
 
-const MOCK_GLUCOSE_HISTORY = [
-  { time: '06:00', value: 95 },
-  { time: '09:00', value: 140 },
-  { time: '12:00', value: 110 },
-  { time: '15:00', value: 135 },
-  { time: '18:00', value: 105 },
-  { time: '21:00', value: 120 },
-  { time: '00:00', value: 98 },
-];
 
 // ----------------------------------------------------------------------
 // ASSESSMENT MOCKS (Modular Phase 2)
@@ -164,20 +155,6 @@ mock.onPut('/user/preferences').reply((config) => {
   console.info('[MockAPI] 🔵 Updating Preferences:', JSON.parse(config.data));
   return [200, { success: true, message: 'Preferences saved' }];
 });
-
-const MOCK_STATS = {
-  avgGlucose: 115,
-  glucoseChange: -4, // Percentage
-  riskScore: 'Low',
-  riskConfidence: 94,
-  hba1c: 5.4
-};
-
-const MOCK_ACTIVITY = [
-  { id: 1, title: 'Assessment Completed', desc: 'Risk Analysis: Low', time: '2h ago' },
-  { id: 2, title: 'Lab Results Uploaded', desc: 'blood_work_jan.pdf', time: 'Yesterday' },
-  { id: 3, title: 'Profile Updated', desc: 'Weight changed to 72kg', time: '3 days ago' }
-];
 
 
 // --- Dashboard Endpoints ---

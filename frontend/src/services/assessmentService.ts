@@ -8,15 +8,15 @@ import { type AssessmentData } from '@/store/assessmentStore';
 export const assessmentService = {
   
   // Steps 1, 2, and 3 now resolve locally. Zustand handles the state!
-  async submitAnthropometrics(data: Partial<AssessmentData>) {
+  async submitAnthropometrics(_data: Partial<AssessmentData>) {
     return Promise.resolve({ status: "saved_to_store" });
   },
 
-  async submitLifestyle(data: Partial<AssessmentData>) {
+  async submitLifestyle(_data: Partial<AssessmentData>) {
     return Promise.resolve({ status: "saved_to_store" });
   },
 
-  async uploadPhysicalSigns(data: Partial<AssessmentData>) {
+  async uploadPhysicalSigns(_data: Partial<AssessmentData>) {
     return Promise.resolve({ status: "saved_to_store" });
   },
 
