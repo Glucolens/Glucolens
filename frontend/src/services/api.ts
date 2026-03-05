@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // 1. Create the Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  // FIXED: Aligned with the new global /api namespace
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -24,10 +25,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear session
       localStorage.removeItem('glucolens_token');
       localStorage.removeItem('glucolens_user');
-      // Optional: Redirect to login is handled by the ProtectedRoute component
       window.location.href = '/auth/login';
     }
     return Promise.reject(error);
