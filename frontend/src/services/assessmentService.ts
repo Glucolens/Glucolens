@@ -1,67 +1,103 @@
 import api from './api';
-import { type AssessmentData } from '@/store/assessmentStore';
 
-/**
- * Assessment Service
- * Connected to GlucoLens API 0.1.0 Prediction Endpoints
- */
 export const assessmentService = {
   
-  // Steps 1, 2, and 3 now resolve locally. Zustand handles the state!
-  async submitAnthropometrics(_data: Partial<AssessmentData>) {
-    return Promise.resolve({ status: "saved_to_store" });
+  /**
+   * Evaluates tabular patient data against the primary ML model.
+   * Standard JSON payload.
+   */
+  predictTabular: async (payload: Record<string, any>) => {
+    const response = await api.post('/predict/tabular', payload);
+    return response.data;
   },
 
-  async submitLifestyle(_data: Partial<AssessmentData>) {
-    return Promise.resolve({ status: "saved_to_store" });
-  },
-
-  async uploadPhysicalSigns(_data: Partial<AssessmentData>) {
-    return Promise.resolve({ status: "saved_to_store" });
-  },
-
-  // The Grand Finale: Sending Tabular + Images to the Fusion Endpoint
-  async runPrediction(data: Partial<AssessmentData>) {
+  /**
+   * Uploads an image to the Retina ML model for DR prediction.
+   * @param imageFile - The raw JavaScript File object from the file input.
+   * @param patientKey - Optional identifier for tracking.
+   */
+  predictRetina: async (imageFile: File, patientKey?: string) => {
     const formData = new FormData();
+    // The backend OpenAPI schema explicitly requires the field name 'file'
+    formData.append('file', imageFile);
     
-    // 1. Build the Tabular Payload (matching typical ML feature columns)
-    const tabularPayload = {
-      age: data.age,
-      gender: data.gender,
-      height: data.height,
-      weight: data.weight,
-      waist_circumference: data.waistCircumference,
-      arm_circumference: data.armCircumference,
-      family_history: data.familyHistory,
-      has_diabetes: data.hasDiabetes,
-      diabetes_type: data.diabetesType,
-      education_level: data.educationLevel,
-      social_life: data.socialLife,
-      activity_level: data.activityLevel,
-      sleep_hours: data.sleepHours,
-      smoking: data.smoking,
-      alcohol: data.alcohol,
-      fasting_glucose: data.fastingGlucose,
-      total_cholesterol: data.totalCholesterol,
-      hba1c: data.hba1c,
-      systolic_bp: data.systolicBP
-    };
-
-    // The Fusion endpoint expects 'payload' as a stringified JSON object
-    formData.append('payload', JSON.stringify(tabularPayload));
-
-    // 2. Append the Skin Image if available (we prioritize Acanthosis, fallback to Skin Tags)
-    const skinImage = data.acanthosisImage || data.skinTagsImage;
-    if (skinImage) {
-      formData.append('skin', skinImage);
+    if (patientKey) {
+      formData.append('patient_key', patientKey);
     }
 
-    // (Note: 'retina' field is omitted here since the UI doesn't collect eye scans yet)
+    // Override the default 'application/json' header for this specific request
+    const response = await api.post('/retina/predict', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * Uploads an image to the Skin ML model for dermatological prediction.
+   * @param imageFile - The raw JavaScript File object.
+   */
+  predictSkin: async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const response = await api.post('/skin/predict', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * Uploads data to the complex Fusion endpoint, combining modalities.
+   * @param tabularPayload - A stringified JSON object of the patient's vitals/history.
+   * @param retinaFile - (Optional) The retina image File.
+   * @param skinFile - (Optional) The skin image File.
+   */
+  predictFusion: async (tabularPayload: string, retinaFile?: File | null, skinFile?: File | null) => {
+    const formData = new FormData();
+    
+    // The backend schema expects the tabular data as a stringified string, NOT a JSON object
+    formData.append('payload', tabularPayload);
+
+    if (retinaFile) {
+      formData.append('retina', retinaFile);
+    }
+    if (skinFile) {
+      formData.append('skin', skinFile);
+    }
 
     const response = await api.post('/fusion/predict', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
-    
     return response.data;
-  }
+  },
+  
+  /**
+   * Uploads a CSV to the Genomics model.
+   */
+  predictGenomics: async (payload: string, csvFile?: File | null, patientKey?: string) => {
+    const formData = new FormData();
+    // Use 'payload' as a string to match the complex multipart schema
+    formData.append('payload', payload);
+    
+    if (csvFile) {
+      // Backend expects 'row_csv' for the genomic file
+      formData.append('row_csv', csvFile);
+    }
+    if (patientKey) {
+      formData.append('patient_key', patientKey);
+    }
+
+    const response = await api.post('/genomics/predict', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };

@@ -1,97 +1,63 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 
+// 1. Expand your existing AssessmentData interface
 export interface AssessmentData {
-  // --- Step 1: Basic Info & Health History ---
-  fullName: string;
-  age: number | '';
-  gender: 'male' | 'female' | 'other' | '';
-  height: number | ''; // cm
-  weight: number | ''; // kg
-  waistCircumference: number | ''; // cm
-  armCircumference: number | ''; // cm
+  // ... your existing tabular fields (fullName, age, etc.) ...
   
-  familyHistory: boolean | null;
-  familyCondition: string; 
-  familyRelationship: 'Parent' | 'Sibling' | 'Grandparent' | 'Other' | '';
+  // --- ML Modality Files ---
+  // We store the raw File objects here so they are ready for the FormData construction
+  retinaImageFile: File | null;
+  skinImageFile: File | null;
+  genomicsCsvFile: File | null;
   
-  hasDiabetes: boolean | null;
-  diabetesType: string;
-  
-  otherConditions: string;
-  currentMedication: string;
-  
-  // --- Step 2: Lifestyle ---
-  educationLevel: 'primary' | 'secondary' | 'college' | 'postgraduate' | '';
-  socialLife: 'very_active' | 'moderate' | 'limited' | '';
-  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active' | '';
-  sleepHours: number | '';
-  smoking: 'never' | 'occasionally' | 'yes' | '';
-  alcohol: 'never' | 'occasionally' | 'regularly' | '';
-  
-  // --- Step 3: Physical Signs ---
-  acanthosisNigricans: boolean | null;
-  acanthosisImage: File | null;
-  skinTags: boolean | null;
-  skinTagsImage: File | null;
-  
-  // --- Step 4: Lab Results ---
-  labFile: File | null;
-  fastingGlucose: number | '';
-  totalCholesterol: number | '';
-  hba1c: number | '';
-  systolicBP: number | '';
-  
-  // --- Step 5: Genomic Data ---
-  genomicFile: File | null;
+  // (Optional) You can keep the preview URLs if you are using them to display thumbnails in the UI
+  retinaImagePreviewUrl?: string | null;
+  skinImagePreviewUrl?: string | null;
 }
 
-interface AssessmentState {
-  currentStep: number;
-  totalSteps: number;
+interface AssessmentStore {
   data: AssessmentData;
-  setStep: (step: number) => void;
-  nextStep: () => void;
-  prevStep: () => void;
-  updateData: (fields: Partial<AssessmentData>) => void;
-  resetAssessment: () => void;
+  updateData: (newData: Partial<AssessmentData>) => void;
+  resetData: () => void;
 }
 
-const INITIAL_DATA: AssessmentData = {
-  fullName: '', age: '', gender: '', height: '', weight: '', waistCircumference: '', armCircumference: '',
-  familyHistory: null, familyCondition: '', familyRelationship: '',
-  hasDiabetes: null, diabetesType: '', otherConditions: '', currentMedication: '',
-  educationLevel: '', socialLife: '', activityLevel: '', sleepHours: 7, smoking: '', alcohol: '',
-  acanthosisNigricans: null, acanthosisImage: null, skinTags: null, skinTagsImage: null,
-  labFile: null, fastingGlucose: '', totalCholesterol: '', hba1c: '', systolicBP: '',
-  genomicFile: null
+const initialData: AssessmentData = {
+  // ... your existing initial tabular data ...
+  retinaImageFile: null,
+  skinImageFile: null,
+  genomicsCsvFile: null,
+  retinaImagePreviewUrl: null,
+  skinImagePreviewUrl: null,
 };
 
-export const useAssessmentStore = create<AssessmentState>()(
+export const useAssessmentStore = create<AssessmentStore>()(
   persist(
     (set) => ({
-      currentStep: 1,
-      totalSteps: 5,
-      data: INITIAL_DATA,
-      setStep: (step) => set({ currentStep: step }),
-      nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, state.totalSteps) })),
-      prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) })),
-      updateData: (fields) => set((state) => ({ data: { ...state.data, ...fields } })),
-      resetAssessment: () => set({ currentStep: 1, data: INITIAL_DATA })
+      data: initialData,
+      updateData: (newData) => 
+        set((state) => ({ data: { ...state.data, ...newData } })),
+      resetData: () => set({ data: initialData }),
     }),
     {
       name: 'glucolens-assessment-storage',
-      storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => ({
-        ...state,
-        data: {
-          ...state.data,
-          acanthosisImage: null,
-          skinTagsImage: null,
-          labFile: null,
-          genomicFile: null
-        }
-      })
+      // CRITICAL STEP: File objects cause JSON.stringify to fail or return empty objects {}.
+      // We must exclude the File objects from local storage persistence. 
+      // If the user refreshes the page, they will need to re-upload the images, 
+      // but their typed text data will be saved safely.
+      partialize: (state) => {
+        const { 
+          retinaImageFile, 
+          skinImageFile, 
+          genomicsCsvFile, 
+          ...persistedData 
+        } = state.data;
+        
+        return { 
+          ...state, 
+          data: persistedData 
+        };
+      },
     }
   )
 );
