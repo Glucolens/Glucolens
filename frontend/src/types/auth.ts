@@ -1,12 +1,19 @@
-export interface User {
-  id: string;
-  name: string;
+export interface LoginIn {
   email: string;
-  avatarUrl?: string;
+  password: string;
 }
 
-export interface AuthResponse {
+export interface MeOut {
+  id: string;
+  email: string;
+  role: string;
+  org_id: string | null;
+  facility_id: string | null;
+}
+
+
+export interface TokenOut {
   access_token: string;
-  expires_in: number;
-  user: User;
+  refresh_token: string;
+  token_type: string;
 }
