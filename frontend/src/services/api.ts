@@ -9,9 +9,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // REMOVED hardcoded headers so Axios can dynamically switch 
+  // between JSON and Multipart/Form-Data for ML image uploads!
 });
 
 // --- REQUEST INTERCEPTOR ---
