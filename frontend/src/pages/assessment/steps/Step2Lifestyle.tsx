@@ -6,12 +6,12 @@ import { Activity, Moon, BookOpen, Users, Flame, Wine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Step2Form {
-  educationLevel: 'primary' | 'secondary' | 'college' | 'postgraduate' | '';
-  socialLife: 'very_active' | 'moderate' | 'limited' | '';
-  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active' | '';
-  sleepHours: number;
-  smoking: 'never' | 'occasionally' | 'yes' | '';
-  alcohol: 'never' | 'occasionally' | 'regularly' | '';
+  educationLevel?: string;
+  socialLife?: string;
+  activityLevel?: string;
+  sleepHours?: number | string;
+  smoking?: string;
+  alcohol?: string;
 }
 
 export default function Step2Lifestyle() {

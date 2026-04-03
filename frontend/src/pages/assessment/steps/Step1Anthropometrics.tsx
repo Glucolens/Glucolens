@@ -6,22 +6,21 @@ import { Input } from '@/components/ui/Input';
 import { Calculator, Check, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Maps exactly to our Phase 2 Store Data Contract
 interface Step1Form {
-  fullName: string;
-  age: number;
-  gender: 'male' | 'female' | 'other' | '';
-  height: number;
-  weight: number;
-  waistCircumference: number;
-  armCircumference: number;
-  familyHistory: boolean | null;
-  familyCondition: string;
-  familyRelationship: 'Parent' | 'Sibling' | 'Grandparent' | 'Other' | '';
-  hasDiabetes: boolean | null;
-  diabetesType: string;
-  otherConditions: string;
-  currentMedication: string;
+  fullName?: string;
+  age?: number | string;
+  gender?: string;
+  height?: number | string;
+  weight?: number | string;
+  waistCircumference?: number | string;
+  armCircumference?: number | string;
+  familyHistory?: boolean | string;
+  familyCondition?: string;
+  familyRelationship?: string;
+  hasDiabetes?: boolean | string;
+  diabetesType?: string;
+  otherConditions?: string;
+  currentMedication?: string;
 }
 
 export default function Step1Anthropometrics() {
@@ -46,7 +45,7 @@ export default function Step1Anthropometrics() {
     }
   });
 
-  // Watchers for calculations and progressive disclosure
+// Watchers for calculations and progressive disclosure
   const height = watch('height');
   const weight = watch('weight');
   const waist = watch('waistCircumference');
@@ -55,16 +54,21 @@ export default function Step1Anthropometrics() {
   const familyRelationship = watch('familyRelationship');
   const hasDiabetes = watch('hasDiabetes');
 
+  // --- Safely parse to numbers for TypeScript ---
+  const numHeight = Number(height) || 0;
+  const numWeight = Number(weight) || 0;
+  const numWaist = Number(waist) || 0;
+
   // --- Calculations ---
   let bmi: number | null = null;
-  if (height > 0 && weight > 0) {
-    const heightInMeters = height / 100;
-    bmi = weight / (heightInMeters * heightInMeters);
+  if (numHeight > 0 && numWeight > 0) {
+    const heightInMeters = numHeight / 100;
+    bmi = numWeight / (heightInMeters * heightInMeters);
   }
 
   let whtr: number | null = null;
-  if (waist > 0 && height > 0) {
-    whtr = waist / height;
+  if (numWaist > 0 && numHeight > 0) {
+    whtr = numWaist / numHeight;
   }
 
   const getBmiCategory = (bmiValue: number) => {

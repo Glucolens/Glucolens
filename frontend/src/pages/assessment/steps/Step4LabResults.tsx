@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/Input';
 import { UploadCloud, X, FileText, Activity } from 'lucide-react';
 
 interface Step4Form {
-  labFile: File | null;
-  fastingGlucose: number | '';
-  totalCholesterol: number | '';
-  hba1c: number | '';
-  systolicBP: number | '';
+  labFile?: File | null;
+  fastingGlucose?: number | string;
+  totalCholesterol?: number | string;
+  hba1c?: number | string;
+  systolicBP?: number | string;
 }
 
 export default function Step4LabResults() {
