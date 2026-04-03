@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react'; // Added Activity icon
 
 // Stores & Services
 import { useAuthStore } from '@/store/authStore';
 import { loginSchema, type LoginFormData } from '@/lib/validation';
+import api from '@/services/api'; // Imported to ping the server
 
 // Components
 import { Button } from '@/components/ui/Button';
@@ -19,14 +20,23 @@ const Login = () => {
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   
+  // NEW: State to track if the server is taking a long time
+  const [isWakingServer, setIsWakingServer] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
   
   const login = useAuthStore((state) => state.login);
-  // Pull the loading state directly from the Zustand store!
   const isLoading = useAuthStore((state) => state.isLoading);
   
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // --- 1. THE HEAD START PING ---
+  // Silently wake the server up while the user fills out the form
+  useEffect(() => {
+    // We don't await or care about the response. Just hitting /health wakes it up.
+    api.get('/health').catch(() => {});
+  }, []);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -35,18 +45,27 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
+    setIsWakingServer(false);
+    
+    // --- 2. THE SLOW REQUEST DETECTOR ---
+    // If the login takes more than 4 seconds, the server is asleep. Show the banner.
+    const wakeTimer = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 4000);
+
     try {
-      // Pass the single credentials object to the store
       await login({ email: data.email, password: data.password });
+      clearTimeout(wakeTimer); // Cancel timer if it succeeds quickly
       navigate(from, { replace: true });
     } catch (err: any) {
+      clearTimeout(wakeTimer); // Cancel timer on error
+      setIsWakingServer(false);
       console.error('[Login] Request Failed:', err);
       setServerError(useAuthStore.getState().error || 'Login failed. Please check your credentials.');
     }
   };
 
   const handleDemoAccess = () => {
-    // Bypass the API entirely and force the store into an authenticated state
     useAuthStore.setState({
       user: { id: "demo-user", email: "guest@glucolens.com", role: "patient", org_id: null, facility_id: null },
       accessToken: "demo-token",
@@ -67,6 +86,18 @@ const Login = () => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        
+        {/* --- 3. DYNAMIC REASSURANCE BANNER --- */}
+        {isWakingServer && !serverError && (
+          <div className="p-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
+            <Activity className="shrink-0 w-5 h-5 animate-pulse text-blue-500 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold">Warming up the servers...</p>
+              <p className="text-blue-600/80 leading-snug">Our servers are booting up to ensure your data is processed securely. This may take a minute or two.</p>
+            </div>
+          </div>
+        )}
+
         {serverError && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in">
             <AlertCircle size={16} className="shrink-0" />
@@ -115,11 +146,11 @@ const Login = () => {
 
         <Button 
           type="submit" 
-          className="w-full py-2.5 shadow-soft"
+          className="w-full py-2.5 shadow-soft transition-all"
           isLoading={isLoading}
           disabled={isLoading}
         >
-          {t('login_button', 'Login')}
+          {isWakingServer ? 'Connecting...' : t('login_button', 'Login')}
         </Button>
 
         <div className="relative py-2">

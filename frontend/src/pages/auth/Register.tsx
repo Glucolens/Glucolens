@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 
 // Stores & Services
 import { useAuthStore } from '@/store/authStore';
@@ -28,9 +28,18 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // NEW: State to track if the server is taking a long time
+  const [isWakingServer, setIsWakingServer] = useState(false);
+  
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   
+  // --- 1. THE HEAD START PING ---
+  // Silently wake the server up while the user fills out their information
+  useEffect(() => {
+    api.get('/health').catch(() => {});
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -39,8 +48,16 @@ const Register = () => {
     resolver: zodResolver(registerSchema),
   });
 
-const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setServerError(null);
+    setIsWakingServer(false);
+
+    // --- 2. THE SLOW REQUEST DETECTOR ---
+    // Registration + Auto-Login can take a while on a cold start.
+    const wakeTimer = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 4000);
+
     try {
       // 1. Create the user
       await api.post('/auth/register-public', {
@@ -48,17 +65,20 @@ const onSubmit = async (data: RegisterFormData) => {
         password: data.password,
       });
 
-      // 2. Automatically log them in using the Zustand store action
+      // 2. Automatically log them in (which handles token fetching and profile building)
       await login({ 
         email: data.email, 
         password: data.password 
       });
 
-      // 3. Redirect
+      clearTimeout(wakeTimer);
       navigate('/dashboard');
 
     } catch (err: unknown) {
+      clearTimeout(wakeTimer);
+      setIsWakingServer(false);
       console.error('[Register] Request Failed:', err);
+      
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 409) {
           setServerError('This email address is already registered. Please log in.');
@@ -76,6 +96,9 @@ const onSubmit = async (data: RegisterFormData) => {
     }
   };
 
+  // We consider it loading if the form is submitting OR if Zustand is busy logging them in
+  const isLoading = isSubmitting || useAuthStore.getState().isLoading;
+
   return (
     <AuthLayout>
       {/* HEADER SECTION  */}
@@ -89,6 +112,18 @@ const onSubmit = async (data: RegisterFormData) => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
+        
+        {/* --- 3. DYNAMIC REASSURANCE BANNER --- */}
+        {isWakingServer && !serverError && (
+          <div className="p-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
+            <Activity className="shrink-0 w-5 h-5 animate-pulse text-blue-500 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-bold">Warming up the servers...</p>
+              <p className="text-blue-600/80 leading-snug">Our servers are booting up to ensure your data is processed securely. This may take a minute or two.</p>
+            </div>
+          </div>
+        )}
+
         {/* Server Error Alert */}
         {serverError && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 animate-in fade-in">
@@ -104,6 +139,7 @@ const onSubmit = async (data: RegisterFormData) => {
             icon={<User size={18} className="text-muted-foreground" />}
             placeholder="Enter your full name"
             error={errors.fullName?.message}
+            disabled={isLoading}
             {...register('fullName')}
           />
           
@@ -113,6 +149,7 @@ const onSubmit = async (data: RegisterFormData) => {
             icon={<Mail size={18} className="text-muted-foreground" />}
             placeholder="your.email@example.com"
             error={errors.email?.message}
+            disabled={isLoading}
             {...register('email')}
           />
           
@@ -122,6 +159,7 @@ const onSubmit = async (data: RegisterFormData) => {
             icon={<Phone size={18} className="text-muted-foreground" />}
             placeholder="+1 (555) 000-0000"
             error={errors.phoneNumber?.message}
+            disabled={isLoading}
             {...register('phoneNumber')}
           />
 
@@ -131,11 +169,13 @@ const onSubmit = async (data: RegisterFormData) => {
             icon={<Lock size={18} className="text-muted-foreground" />}
             placeholder="Enter your password"
             error={errors.password?.message}
+            disabled={isLoading}
             rightElement={
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)}
                 className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -149,11 +189,13 @@ const onSubmit = async (data: RegisterFormData) => {
             icon={<Lock size={18} className="text-muted-foreground" />}
             placeholder="Confirm your password"
             error={errors.confirmPassword?.message}
+            disabled={isLoading}
             rightElement={
               <button 
                 type="button" 
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                disabled={isLoading}
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -168,7 +210,8 @@ const onSubmit = async (data: RegisterFormData) => {
             <div className="flex items-center h-5 mt-0.5">
               <input 
                 type="checkbox" 
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary transition-colors"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary transition-colors disabled:opacity-50"
+                disabled={isLoading}
                 {...register('emailReminders')}
               />
             </div>
@@ -181,7 +224,8 @@ const onSubmit = async (data: RegisterFormData) => {
             <div className="flex items-center h-5 mt-0.5">
               <input 
                 type="checkbox" 
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary transition-colors"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary transition-colors disabled:opacity-50"
+                disabled={isLoading}
                 {...register('smsReminders')}
               />
             </div>
@@ -202,10 +246,11 @@ const onSubmit = async (data: RegisterFormData) => {
         {/* SUBMIT BUTTON */}
         <Button 
           type="submit" 
-          className="w-full mt-6 py-2.5 text-base font-medium shadow-soft" 
-          isLoading={isSubmitting}
+          className="w-full mt-6 py-2.5 text-base font-medium shadow-soft transition-all" 
+          isLoading={isLoading}
+          disabled={isLoading}
         >
-          {t('reg_submit', 'Sign Up')}
+          {isWakingServer ? 'Connecting...' : t('reg_submit', 'Sign Up')}
         </Button>
       </form>
 
