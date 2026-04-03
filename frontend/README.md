@@ -1,151 +1,79 @@
+# Glucolens Frontend Architecture
+![React](https://img.shields.io/badge/React-18.x-blue)
+![Vite](https://img.shields.io/badge/Vite-5.x-purple)
+![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue)
 
-# Glucolens Frontend Architecture Specification
-![Project Status](https://img.shields.io/badge/Status-Active_Development-blue)
-![Version](https://img.shields.io/badge/Version-1.0.0-green)
-![License](https://img.shields.io/badge/License-Proprietary-red)
+The frontend client for Glucolens is a clinical-grade React application. It manages complex, multi-step diagnostic assessments, strict OpenAPI payload mapping, and secure JWT authentication.
 
 ---
 
-## 1. Development Standards & "Pro" Etiquette
+## 1. Core Technologies
+* **Framework:** React + Vite
+* **State Management:** Zustand (with persistent storage middleware)
+* **Styling:** Tailwind CSS (Custom Medical Blue theme)
+* **Form Validation:** React Hook Form + Zod
+* **API Client:** Axios (with automated token refresh interceptors)
 
-To ensure maintainability and scalability, all contributors must adhere to these standards.
+---
+
+## 2. Development Standards & "Pro" Etiquette
+
+To ensure maintainability and scalability, all contributors must adhere to these standards:
 
 ### **Code Quality**
-* **Strict Typing:** No `any` types. All data structures must be defined in `src/types`.
-* **Comments:** Use JSDoc format (`/** ... */`) for all functions and components.
-    * *Bad:* `// checks login`
-    * *Good:* `/** Verifies session validity and handles 401 redirect logic. */`
+* **Strict Typing:** No `any` types permitted in core data structures. All payloads must map precisely to the backend OpenAPI specification.
 * **Absolute Imports:** Use path aliases.
-    * *Avoid:* `import Button from '../../../components/ui/Button'`
+    * *Avoid:* `import { Button } from '../../../components/ui/Button'`
     * *Use:* `import { Button } from '@/components/ui/Button'`
+* **Graceful Degradation:** If a non-critical backend endpoint (e.g., Dashboard Stats) returns a `404 Not Found`, the frontend must catch the error and render fallback UI rather than crashing the application.
 
 ### **Commit Convention (Conventional Commits)**
 We follow the conventional commit structure: `type(scope): description`
-* `feat(auth): add login form validation`
-* `fix(wizard): resolve step 3 camera permission error`
-* `docs(api): update genomic endpoint spec`
-* `style(dashboard): fix padding on risk cards`
-
-### **Validation Layer**
-* **Runtime Validation:** Use **Zod** for all form inputs. Medical data cannot rely solely on TypeScript interfaces.
+* `feat(auth): implement two-step JWT login flow`
+* `fix(wizard): resolve string/number math conflicts in BMI calculator`
+* `style(ui): update primary borders to medical blue`
 
 ---
 
-## 2. Project Structure
+## 3. State Management Architecture
 
-```text
-src/
-├── components/
-│   ├── ui/                # Reusable atoms (Button, Input, Card, Modal)
-│   ├── layout/            # Layout wrappers (AuthLayout, AppLayout, Sidebar)
-│   ├── wizard/            # Assessment specific steps (Step1History, etc.)
-│   └── shared/            # Complex shared components (RiskGauge, TrendChart)
-├── features/              # Feature-based modularity (Optional for scaling)
-├── hooks/                 # Custom hooks (useCamera, useMultiStepForm)
-├── lib/                   # Third-party lib configs (axios, utils, tailwind-merge)
-├── pages/                 # Route components (Dashboard, Settings, Wizard)
-├── services/
-│   ├── api.ts             # The Axios Instance (Base URL + Interceptors)
-│   ├── auth.ts            # Auth-specific API calls
-│   └── mock/              # Mock data generators (faker.js or static JSON)
-├── store/                 # State Management (Zustand stores)
-└── types/                 # Global TypeScript interfaces
+Glucolens utilizes **Zustand** for global, conflict-free state management, separating UI logic from data storage.
 
-```
+### `authStore.ts`
+Manages the user's secure session. 
+* Handles the two-step login flow (`/auth/login` -> `/auth/me`).
+* Maintains the `accessToken` and `refreshToken`.
+* Persists the session to LocalStorage so users remain logged in across reloads.
+
+### `assessmentStore.ts`
+Acts as the central nervous system for the Diagnostic Wizard.
+* Cumulatively collects data across multiple wizard steps.
+* Handles progressive disclosure (e.g., clearing dependent fields if a user changes a previous answer).
+* **Crucial Security Feature:** Persists tabular data to LocalStorage to prevent data loss on refresh, but intentionally *omits* File objects (Retina/Skin images) from persistence to avoid serialization crashes.
 
 ---
 
-## 3. The API Contract (Master List)
+## 4. API Integration & Routing
 
-This list merges the original backend endpoints with the critical frontend requirements (highlighted as **[NEW]**). **All endpoints below must be mocked for the initial Frontend MVP.**
+The frontend directly interfaces with the FastAPI backend using strict schemas. 
 
-### **A. Authentication & Session**
+### Dynamic ML Routing (`useSubmitAssessment.ts`)
+The frontend is responsible for determining the correct ML pipeline based on the data provided by the clinician:
+1.  **Tabular Only:** If no images are uploaded, the payload is mapped and sent to `/api/predict/tabular`.
+2.  **Fusion:** If a Retina or Skin image is detected in the `AssessmentStore`, the tabular data is stringified and packaged alongside the binary files as `multipart/form-data`, routing to `/api/fusion/predict`.
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/auth/register` | Register a new user. |
-| `POST` | `/auth/login` | Login (Returns JWT `access_token`). |
-| `POST` | `/auth/refresh` | **[NEW]** Refresh expired access token. |
-| `POST` | `/auth/logout` | **[NEW]** Invalidate session server-side. |
-| `POST` | `/auth/password-reset` | **[NEW]** Request password reset email. |
-
-### **B. User Profile**
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/user/profile` | Get profile info (Name, Avatar, Settings). |
-| `PUT` | `/user/profile` | **[NEW]** Update profile (e.g., fix name typo). |
-| `PATCH` | `/user/settings` | **[NEW]** Update preferences (Notifications, Theme). |
-
-### **C. Assessment Data (The Wizard)**
-
-*Note: The frontend needs `GET` endpoints to pre-fill forms if a user returns to an incomplete assessment.*
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/data/anthropometric` | Submit Step 1 data (Height, Weight, History). |
-| `GET` | `/data/anthropometric` | **[NEW]** Retrieve existing Step 1 data. |
-| `POST` | `/data/lifestyle` | **[NEW]** Submit Step 2 data (Sleep, Activity). |
-| `GET` | `/data/lifestyle` | **[NEW]** Retrieve existing Step 2 data. |
-| `POST` | `/data/genomic` | Submit Step 5 genomic file/data. |
-| `GET` | `/data/genomic` | **[NEW]** Check if genomic data exists. |
-| `POST` | `/images/retina` | Upload retina scan (Multipart/Form-Data). |
-| `POST` | `/images/signs` | **[NEW]** Upload skin sign images (Acanthosis). |
-
-### **D. Predictions & Results**
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/predict` | Trigger ML model. Body: `{ use_modalities: [] }` |
-| `GET` | `/history/predictions` | List past prediction summaries. |
-| `GET` | `/history/{id}` | **[NEW]** Get full details of a specific past result. |
-| `GET` | `/explain/shap/{id}` | Get SHAP explainability data. |
-| `GET` | `/report/download/{id}` | Download PDF report. |
+### Critical Endpoints Utilized
+* `POST /api/auth/login` (Token generation)
+* `POST /api/auth/register-public` (Account creation)
+* `GET /api/auth/me` (Profile hydration)
+* `GET /api/health` (UX patch: Used to silently wake sleeping free-tier servers)
+* `POST /api/fusion/predict` (Primary diagnostic engine)
 
 ---
 
-## 4. Key Data Models (TypeScript)
+## 5. UI/UX Features
 
-### **PatientProfile**
-
-```typescript
-interface PatientProfile {
-  id: string;
-  fullName: string;
-  email: string;
-  avatarUrl?: string;
-  settings: {
-    notifications: boolean;
-    language: 'en' | 'fr';
-  };
-}
-
-```
-
-### **PredictionResult**
-
-```typescript
-interface PredictionResult {
-  id: string;
-  date: string;
-  riskScore: number; // 0.0 to 1.0
-  riskLevel: 'Low' | 'Medium' | 'High';
-  contributingFactors: Array<{
-    feature: string;
-    impact: number;
-    description: string; // e.g., "High BMI increases risk"
-  }>;
-}
-
-```
-
----
-
-## 5. UI/UX Requirements (Non-Functional)
-
-1. **Responsive:** Must work on mobile (375px+) and Desktop (1440px).
-2. **Persistence:** If a user reloads the Wizard on Step 3, data from Steps 1 & 2 must not be lost (Implement LocalStorage backup).
-3. **Loading States:** No "jumps". Use Skeleton loaders for data fetching.
-4. **Error Handling:** All API errors must show a User-Friendly Toast notification, not `console.log`.
-
+1.  **Server Wake-up Patch:** Silent `/health` pings initiate server cold-starts during form entry, accompanied by dynamic "Establishing secure connection..." banners for slow responses.
+2.  **Clinical Animations:** A dedicated `AnalysisScreen` provides secure, professional visual feedback while the tensor operations run on the backend.
+3.  **Responsive Form Handling:** Safe numeric parsing prevents `NaN` errors if clinicians clear inputs mid-assessment.
 ```
