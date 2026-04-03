@@ -39,29 +39,41 @@ const Register = () => {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: RegisterFormData) => {
+const onSubmit = async (data: RegisterFormData) => {
     setServerError(null);
     try {
-      // FIXED: Routed to /auth/register-public and strictly limited payload to match OAS 3.1
-      // We are only sending email and password to prevent 422 Validation Errors from FastAPI
-      const response = await api.post<any>('/auth/register-public', {
+      // 1. Create the user
+      await api.post('/auth/register-public', {
         email: data.email,
         password: data.password,
       });
 
-      const { user, access_token } = response.data;
+      // 2. Automatically log them in right after successful registration
+      // (Using the exact same credentials)
+      const loginResponse = await api.post<any>('/auth/login', {
+        email: data.email, 
+        password: data.password
+      });
+
+      const { user, access_token } = loginResponse.data;
       
       if (!user || !access_token) {
-        throw new Error("Registration successful, but server returned invalid data.");
+        throw new Error("Login failed after registration.");
       }
 
+      // 3. Save to Zustand store and redirect
       login(user, access_token);
-      console.log('[Register] Success. Auto-logging in...');
       navigate('/dashboard');
+
     } catch (err: unknown) {
       console.error('[Register] Request Failed:', err);
       if (axios.isAxiosError(err)) {
-        // FastAPI validation errors are usually in err.response?.data?.detail
+        // Handle the 409 Email Already Exists error explicitly
+        if (err.response?.status === 409) {
+          setServerError('This email address is already registered. Please log in.');
+          return;
+        }
+
         const detail = err.response?.data?.detail;
         const message = Array.isArray(detail) ? detail[0].msg : err.response?.data?.message || 'Registration failed. Please try again.';
         setServerError(message);

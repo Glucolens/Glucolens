@@ -99,7 +99,7 @@ const Login = () => {
 
       const response = await api.post<any>('/auth/login', {
 
-        username: data.email, 
+        email: data.email, 
 
         password: data.password
 
