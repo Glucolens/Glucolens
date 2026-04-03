@@ -88,69 +88,51 @@ const Login = () => {
    */
 
   const onSubmit = async (data: LoginFormData) => {
-
     setServerError(null);
-
     setShowLoader(true);
-
     try {
-
-      //Type-Safe API Call 
-
-      const response = await api.post<any>('/auth/login', {
-
+      // STEP 1: Get the Access Token
+      const loginResponse = await api.post<any>('/auth/login', {
         email: data.email, 
-
         password: data.password
-
       });
 
-      // Validate and Extract Response
-
-      const { user, access_token } = response.data;
-
+      const { access_token } = loginResponse.data;
       
-
-      if (!access_token || !user) {
-
-        throw new Error("Invalid response from server: Missing token or user data");
-
+      if (!access_token) {
+        throw new Error("Invalid response from server: Missing access token");
       }
 
-      // Login and Redirect
+      // STEP 2: Fetch the User Profile using the token
+      const meResponse = await api.get<any>('/auth/me', {
+        headers: {
+          Authorization: `Bearer ${access_token}`
+        }
+      });
 
+      const user = meResponse.data;
+
+      if (!user) {
+        throw new Error("Failed to fetch user profile after login");
+      }
+
+      // STEP 3: Save to Zustand store and Redirect
       login(user, access_token);
-
       navigate(from, { replace: true });
 
     } catch (err: unknown) {
-
       console.error('[Login] Request Failed:', err);
-
-      // error checking
-
       if (axios.isAxiosError(err)) {
-
-        const message = err.response?.data?.message || t('invalid_credentials', 'Invalid email or password.');
-
-        setServerError(message);
-
+        const message = err.response?.data?.detail || err.response?.data?.message || t('invalid_credentials', 'Invalid email or password.');
+        setServerError(typeof message === 'string' ? message : 'Login failed');
       } else if (err instanceof Error) {
-
         setServerError(err.message);
-
       } else {
-
         setServerError(t('unexpected_error', 'An unexpected error occurred.'));
-
       }
-
     } finally {
-
       setShowLoader(false);
-
     }
-
   };
 
   /**

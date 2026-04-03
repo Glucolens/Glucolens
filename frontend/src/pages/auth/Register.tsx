@@ -48,27 +48,34 @@ const onSubmit = async (data: RegisterFormData) => {
         password: data.password,
       });
 
-      // 2. Automatically log them in right after successful registration
-      // (Using the exact same credentials)
+      // 2. Automatically log them in (Get Token)
       const loginResponse = await api.post<any>('/auth/login', {
         email: data.email, 
         password: data.password
       });
 
-      const { user, access_token } = loginResponse.data;
+      const { access_token } = loginResponse.data;
       
-      if (!user || !access_token) {
+      if (!access_token) {
         throw new Error("Login failed after registration.");
       }
 
-      // 3. Save to Zustand store and redirect
+      // 3. Fetch their brand new user profile
+      const meResponse = await api.get<any>('/auth/me', {
+        headers: {
+          Authorization: `Bearer ${access_token}`
+        }
+      });
+
+      const user = meResponse.data;
+
+      // 4. Save to Zustand store and redirect
       login(user, access_token);
       navigate('/dashboard');
 
     } catch (err: unknown) {
       console.error('[Register] Request Failed:', err);
       if (axios.isAxiosError(err)) {
-        // Handle the 409 Email Already Exists error explicitly
         if (err.response?.status === 409) {
           setServerError('This email address is already registered. Please log in.');
           return;
