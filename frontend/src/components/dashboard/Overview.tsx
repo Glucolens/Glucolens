@@ -75,7 +75,7 @@ export default function DashboardOverview() {
         
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            Hi {user?.name || 'Guest'}! Let's check your health status today.
+            Hi {user?.email || 'Guest'}! Let's check your health status today.
           </h1>
           <p className="text-muted-foreground">Your wellness journey continues here</p>
         </div>

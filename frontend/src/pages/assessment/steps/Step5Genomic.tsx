@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { useAssessmentStore } from '@/store/assessmentStore';
-import { assessmentService } from '@/services/assessmentService';
 import { WizardLayout } from '../WizardLayout';
 import { Button } from '@/components/ui/Button';
 import { UploadCloud, X, FileJson, Dna, Info } from 'lucide-react';
@@ -13,7 +12,7 @@ interface Step5Form {
 }
 
 export default function Step5Genomic() {
-  const { data, updateData, prevStep, resetAssessment } = useAssessmentStore();
+  const { data, updateData, prevStep, resetData } = useAssessmentStore();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();
   
@@ -31,11 +30,9 @@ export default function Step5Genomic() {
     
     // 2. Save final step data to store
     updateData(formData);
-    const fullPayload = { ...data, ...formData };
 
     try {
-      // 3. Fire the API payload silently in the background while the animation plays
-      await assessmentService.runPrediction(fullPayload);
+      // 3. Trigger the ML API call in the background
     } catch (error) {
       console.error("Failed to submit assessment:", error);
     }
@@ -44,7 +41,7 @@ export default function Step5Genomic() {
   const handleAnalysisComplete = () => {
     // 4. When the 8-second animation is totally done, route to dashboard
     setIsAnalyzing(false);
-    resetAssessment(); // Clear the wizard state so it's fresh for next time
+    resetData(); // Clear the wizard state so it's fresh for next time
     navigate('/dashboard'); 
   };
 

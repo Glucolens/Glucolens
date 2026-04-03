@@ -7,9 +7,10 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
+    
+    // DELETE "ignoreDeprecations" entirely
+    // DELETE "baseUrl" entirely
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },

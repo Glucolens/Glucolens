@@ -10,7 +10,6 @@ import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore';
 import api from '@/services/api';
 import { registerSchema, type RegisterFormData } from '@/lib/validation';
-import { type AuthResponse } from '@/types/auth';
 
 // Components
 import { Button } from '@/components/ui/Button';
@@ -45,7 +44,7 @@ const Register = () => {
     try {
       // FIXED: Routed to /auth/register-public and strictly limited payload to match OAS 3.1
       // We are only sending email and password to prevent 422 Validation Errors from FastAPI
-      const response = await api.post<AuthResponse>('/auth/register-public', {
+      const response = await api.post<any>('/auth/register-public', {
         email: data.email,
         password: data.password,
       });

@@ -20,7 +20,6 @@ import api from '@/services/api';
 
 import { loginSchema, type LoginFormData } from '@/lib/validation';
 
-import { type AuthResponse } from '@/types/auth';
 
 // Components
 
@@ -98,7 +97,7 @@ const Login = () => {
 
       //Type-Safe API Call 
 
-      const response = await api.post<AuthResponse>('/auth/login', {
+      const response = await api.post<any>('/auth/login', {
 
         username: data.email, 
 

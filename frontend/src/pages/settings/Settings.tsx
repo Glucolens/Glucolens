@@ -79,7 +79,7 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <Input label="Full Name" defaultValue={user?.name || "Jean Pierre"} />
+              <Input label="Full Name" defaultValue={user?.email || "Jean Pierre"} />
               <Input label="Email Address" defaultValue={user?.email || "jp@glucolens.com"} disabled className="bg-gray-50 text-gray-500" />
             </div>
             <div className="flex justify-end">

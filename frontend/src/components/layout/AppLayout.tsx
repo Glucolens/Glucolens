@@ -76,10 +76,10 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="mb-2 px-3 py-2 flex items-center gap-3 rounded-lg bg-gray-50 border border-gray-100">
              {/* Updated Avatar to use Semantic Primary Colors */}
              <div className="h-9 w-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold border border-primary-200">
-                {user?.name?.[0] || 'U'}
+                {user?.email?.[0] || 'U'}
              </div>
              <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                <p className="truncate text-sm font-medium text-gray-900">{user?.email || 'User'}</p>
                 <p className="truncate text-xs text-gray-500">{user?.email || 'user@example.com'}</p>
              </div>
           </div>
