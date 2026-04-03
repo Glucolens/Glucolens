@@ -28,40 +28,7 @@ The inference engine utilizes a multimodal ensemble approach to calculate calibr
 
 ## 🚀 Local Development Setup
 
-### 1. Prerequisites
-* Python 3.10 or higher
-* `pip` and `virtualenv`
-
-### 2. Environment Setup
-```bash
-# Navigate to the backend directory
-cd backend
-
-# Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 3. Environment Variables
-Create a `.env` file in the root of the `backend` directory. You will need configuration for the database, JWT secret keys, and ML model weights paths:
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/glucolens
-SECRET_KEY=your_super_secret_jwt_key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-MODEL_WEIGHTS_PATH=./ml_models/weights/
-```
-
-### 4. Running the Server
-```bash
-# Start the FastAPI development server with hot-reloading
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-The interactive API documentation (Swagger UI) will be available at `http://localhost:8000/docs`.
-
+[check back in time or contact us]
 ---
 
 ## ☁️ Deployment Notes (Render)
