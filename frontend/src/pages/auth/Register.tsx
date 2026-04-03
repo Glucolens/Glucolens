@@ -48,29 +48,13 @@ const onSubmit = async (data: RegisterFormData) => {
         password: data.password,
       });
 
-      // 2. Automatically log them in (Get Token)
-      const loginResponse = await api.post<any>('/auth/login', {
+      // 2. Automatically log them in using the Zustand store action
+      await login({ 
         email: data.email, 
-        password: data.password
+        password: data.password 
       });
 
-      const { access_token } = loginResponse.data;
-      
-      if (!access_token) {
-        throw new Error("Login failed after registration.");
-      }
-
-      // 3. Fetch their brand new user profile
-      const meResponse = await api.get<any>('/auth/me', {
-        headers: {
-          Authorization: `Bearer ${access_token}`
-        }
-      });
-
-      const user = meResponse.data;
-
-      // 4. Save to Zustand store and redirect
-      login(user, access_token);
+      // 3. Redirect
       navigate('/dashboard');
 
     } catch (err: unknown) {

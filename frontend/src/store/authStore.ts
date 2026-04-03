@@ -11,7 +11,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
-  login: (user: any, token: string) => void;
+  login: (credentials: LoginIn) => Promise<void>;
   logout: () => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   fetchMe: () => Promise<void>;
