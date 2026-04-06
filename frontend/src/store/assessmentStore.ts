@@ -98,6 +98,8 @@ export const useAssessmentStore = create<AssessmentStore>()(
           genomicsCsvFile, 
           genomicFile,
           labFile,
+          retinaImagePreviewUrl, // need to persist files and their preview URLs to maintain them across refreshes
+          skinImagePreviewUrl,   // need to persist preview URLs to maintain them across refreshes
           ...persistedData 
         } = state.data;
         return { ...state, data: persistedData };
